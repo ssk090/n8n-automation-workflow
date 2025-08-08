@@ -1,0 +1,142 @@
+{
+  "name": "check weather",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        0
+      ],
+      "id": "f3257056-191c-475d-86b3-c68e79118a7a",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "cityName": "Bhubaneswar"
+      },
+      "type": "n8n-nodes-base.openWeatherMap",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        0
+      ],
+      "id": "2b85c782-b308-413b-82ce-cf16476a38c6",
+      "name": "OpenWeatherMap",
+      "credentials": {
+        "openWeatherMapApi": {
+          "id": "pxAc4cj7NhNFb5xE",
+          "name": "OpenWeatherMap account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "shivanandasai.38@gmail.com",
+        "subject": "Check weather!",
+        "message": "={{ $json.content.parts[0].text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        320,
+        0
+      ],
+      "id": "4d88f975-4de9-4f6d-b169-01ed096a37db",
+      "name": "Send a message",
+      "webhookId": "4fec01d1-3d50-40ba-a81e-dbc777f53c30",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c0XuGylWar67jYh7",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-pro",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-pro"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an expert in metrological department, I will send you information about a place and you need to write a good morning message and tell me if need to carry an umbrella if i am going outside, \n\n<general_guidelines>\n- NEVER use meta-phrases (e.g., \"let me help you\", \"I can see that\").\n- NEVER summarize unless explicitly requested.\n- NEVER provide unsolicited advice.\n- NEVER refer to \"screenshot\" or \"image\" - refer to it as \"the screen\" if needed.\n- ALWAYS be specific, detailed, and accurate.\n- ALWAYS acknowledge uncertainty when present.\n- ALWAYS be natural in response and polite\n</general_guidelines>\nBelow are all the informations you would required for the weather:\n\nplace: {{ $json.name }}\ncountry: {{ $json.sys.country }}\nsunrise: {{ $json.sys.sunrise }}\nsunset: {{ $json.sys.sunset }}\ntimezone: {{ $json.timezone }}\n\nlat and long:\n {{ $json.coord.lon }}\n{{ $json.coord.lat }}\n\nweather, mainly: {{ $json.weather[0].main }}, description: {{ $json.weather[0].description }}\n\ntemperature: {{ $json.main.temp }}, feels like:{{ $json.main.feels_like }}, max temp: {{ $json.main.temp_max }}, min temp: {{ $json.main.temp_min }}\n\npressure: {{ $json.main.pressure }}\nhumidity: {{ $json.main.humidity }}\nsea level: {{ $json.main.sea_level }}\nground level: {{ $json.main.grnd_level }}\nvisibility: {{ $json.visibility }}\n\nwind speed, degree and gust: {{ $json.wind.speed }}, {{ $json.wind.deg }}, {{ $json.wind.gust }}\n\n\nsend me an email with the weather data, without any extra information, I just simply want the weather information with a good morning message in this format :\n\nHi Shiv,\n{body}\nThanks\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        0
+      ],
+      "id": "e2253c66-b3b5-45b4-ab8d-c9af876f12ed",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "0R4tFKeMithqTIiZ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "OpenWeatherMap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenWeatherMap": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        []
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "153d6f1d-5042-4d0a-aef6-053b71e1e9ab",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f0c27caf698b5d6a01a602d2c09678039e4068f913725b041d7c463282f854af"
+  },
+  "id": "uIGEbwNvAVw1Ptwo",
+  "tags": []
+}
