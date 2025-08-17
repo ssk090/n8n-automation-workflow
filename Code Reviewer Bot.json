@@ -1,0 +1,224 @@
+{
+  "name": "Code Reviewer Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "owner": {
+          "__rl": true,
+          "value": "ssk090",
+          "mode": "list",
+          "cachedResultName": "ssk090",
+          "cachedResultUrl": "https://github.com/ssk090"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "resume-analyzer",
+          "mode": "list",
+          "cachedResultName": "resume-analyzer",
+          "cachedResultUrl": "https://github.com/ssk090/resume-analyzer"
+        },
+        "events": [
+          "pull_request"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.githubTrigger",
+      "typeVersion": 1,
+      "position": [
+        -544,
+        -16
+      ],
+      "id": "ac353e19-85b7-4013-af0c-09d6c938f6c9",
+      "name": "Github Trigger",
+      "webhookId": "52965b2f-cbf2-4b1b-88c1-f157936e6031",
+      "credentials": {
+        "githubApi": {
+          "id": "xSXBg9YAP0tyZKDr",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.body.pull_request.url }}/files",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -320,
+        -16
+      ],
+      "id": "5fee15d3-a70e-4db2-bc60-d66b37ef1ce2",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const instructions = `\nUse meaningful and descriptive names that clearly explain the purpose.\nKeep every function small, focused, and limited to a single responsibility.\nFollow a consistent formatting style to improve code readability everywhere.\nWrite clear code so that comments are rarely ever truly necessary.\nAvoid repeating logic; extract common functionality into reusable components.\nSeparate concerns by organizing code based on responsibility and functionality.\nWrite automated tests to ensure code works correctly and remains stable.\nHandle errors gracefully with informative messages and proper fallback logic.\nStructure your application into independent, modular, and well-defined components.\nRegularly refactor and improve code to keep it clean and maintainable.\n`\n\nfor (const item of $input.all()) {\n  const file = item.json;\n\n  const reviewPrompt = `\nYou are a senior software engineer reviewing a pull request expert in javascript, typescript and react. \n\n${instructions}\n\nBelow is a GitHub diff for the file: ${file.filename}\n\nPatch:\n\\`\\`\\`diff\n${file.patch}\n\\`\\`\\`\n\nPlease provide a brief code review comment suggesting improvements, pointing out issues, or appreciating good changes.\n\nFORMAT: JSON\n{\n  \"body\": \"\",\n  \"position\": \"<REPLACE WITH ACTUAL LINE NUMBER>\",\n  \"path\": ${file.filename}\n}\n`;\n\n  item.json.reviewPrompt = reviewPrompt;\n}\n\nreturn $input.all();\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -96,
+        -16
+      ],
+      "id": "7376cb6d-3ec7-440b-acd2-3decc73bf932",
+      "name": "Add review prompt"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.reviewPrompt }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        128,
+        -16
+      ],
+      "id": "4bad3746-a3ed-4267-a368-a16fc4042d95",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "qmPKW2baklmkmVc4",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nconst items = []\nconst comments = []\nfor (const item of $input.all()) {\n  comments.push({\n    body: item.json.message.content.body,\n    path: item.json.message.content.path,\n    line: item.json.message.content.position,\n    side: 'RIGHT'\n  })\n}\n\nitems.push({\n  comments,\n  number: $input.all()[0].json.message.content.number\n})\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        -16
+      ],
+      "id": "b045bb48-d27f-4c4f-bbf1-7ad94294564f",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Github Trigger').item.json.body.pull_request.url }}/reviews",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "body",
+              "value": "=Hi, PR will be reviewed by a bot!\n\n~ sent from bot 🤖"
+            },
+            {
+              "name": "event",
+              "value": "COMMENT"
+            },
+            {
+              "name": "comments",
+              "value": "={{ $json.comments }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        752,
+        -16
+      ],
+      "id": "fab5e6c4-46a2-4f53-8d48-1c91f15540b9",
+      "name": "HTTP Request1",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "KHeQChze4WwWt9Yb",
+          "name": "Bearer Auth account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Github Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Add review prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add review prompt": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "bf106f48-7bf7-443c-922c-50859b0cb1f1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f0c27caf698b5d6a01a602d2c09678039e4068f913725b041d7c463282f854af"
+  },
+  "id": "u5Yq0Z6lSQFeeZRb",
+  "tags": []
+}
